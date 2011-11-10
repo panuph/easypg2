@@ -102,10 +102,7 @@ class ConnectionManager(object):
         for key in self.conns.keys():
             if key not in ids:
                 conn = self.conns.pop(key)
-                try:
-                    conn.close()
-                except:
-                    pass
+                conn.close()
         # Set and return the preferred connection.
         return self.conns.setdefault(key, psycopg2.connect(self.dsn, 
             connection_factory=functools.partial(Connection, timeout=timeout))) 
