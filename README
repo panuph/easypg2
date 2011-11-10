@@ -1,4 +1,4 @@
-easypg2: Just another easy way to work with psycopg2.
+easypg2: Just another easy way to work with psycopg2
 
 INSTALL
 
@@ -9,3 +9,7 @@ USAGE
 Use easypg2.connect() instead of psycopg2.connect(), and that's it. This method
 manages connections on behalf of the client program and allows only one connection
 to a database per thread.
+
+DEPENDENCIES
+
+psycopg2
