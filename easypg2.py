@@ -1,5 +1,6 @@
 import time
 import thread
+import functools
 import threading
 import psycopg2
 import psycopg2.extensions
@@ -7,10 +8,17 @@ import psycopg2.extensions
 class Connection(psycopg2.extensions.connection):
     """Just psycopg2 connection with extra functionalities."""
 
-    def __init__(self, dsn, async=0):
+    def __init__(self, dsn, async=0, timeout=3600):
         """Constructor."""
         super(Connection, self).__init__(dsn, async)
-        self.timestamp = time.time()
+        self.until = time.time() + timeout
+
+    def close(self):
+        """Closes the connection, no matter what, no exception raised."""
+        try:
+            super(Connection, self).close()
+        except:
+            pass
 
     def fetchone(self, operation, *args, **kwargs):
         """Just transacted cursor.execute() and cursor.fetchone()."""
@@ -66,13 +74,12 @@ class Connection(psycopg2.extensions.connection):
 class ConnectionManager(object): 
     """Manages the connection of each thread."""
 
-    def __init__(self, dsn, timeout):
+    def __init__(self, dsn):
         """Constructor."""
         self.dsn = dsn
-        self.timeout = timeout
         self.conns = {}
 
-    def get_conn(self):
+    def get_conn(self, timeout=3600):
         """Returns the connection of the requesting thread."""
         # Sort out the key and connection/transaction status.
         key = thread.get_ident()
@@ -84,7 +91,7 @@ class ConnectionManager(object):
                 if self.conns[key].get_transaction_status() != psycopg2.extensions.TRANSACTION_STATUS_IDLE:
                     # This exception should result in changes in client program.
                     raise Exception("The connection transaction is not idle!")
-            if self.conns[key].closed or time.time() - self.conns[key].timestamp > timeout:
+            if self.conns[key].closed or self.conns[key].until <= time.time():
                 conn = self.conns.pop(key)
                 try:
                     conn.close()
@@ -100,7 +107,8 @@ class ConnectionManager(object):
                 except:
                     pass
         # Set and return the preferred connection.
-        return self.conns.setdefault(key, psycopg2.connect(self.dsn, connection_factory=Connection)) 
+        return self.conns.setdefault(key, psycopg2.connect(self.dsn, 
+            connection_factory=functools.partial(Connection, timeout=timeout))) 
 
 __director__ = {}
 def connect(dsn, timeout=3600):
@@ -114,4 +122,4 @@ def connect(dsn, timeout=3600):
     conn.close()
     """
     global __director__
-    return __director__.setdefault(dsn, ConnectionManager(dsn, timeout)).get_conn()
+    return __director__.setdefault(dsn, ConnectionManager(dsn)).get_conn(timeout)
