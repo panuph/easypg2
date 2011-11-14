@@ -61,13 +61,15 @@ class Connection(psycopg2.extensions.connection):
             cursor.execute(operation, *args, **kwargs)
             self.commit()
             return cursor.rowcount
+        except:
+            try:
+                self.rollback()
+            except:
+                pass
+            raise
         finally:
             try:
                 cursor.close()
-            except:
-                pass
-            try:
-                self.rollback()
             except:
                 pass
 
