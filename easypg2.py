@@ -1,9 +1,11 @@
-import time
-import thread
 import functools
+import thread
 import threading
+import time
+
 import psycopg2
 import psycopg2.extensions
+
 
 class Connection(psycopg2.extensions.connection):
     """Just psycopg2 connection with extra functionalities."""
@@ -21,7 +23,7 @@ class Connection(psycopg2.extensions.connection):
             pass
 
     def fetchone(self, operation, *args, **kwargs):
-        """Just transacted cursor.execute() and cursor.fetchone()."""
+        """Just transact cursor.execute() and cursor.fetchone()."""
         try:
             cursor = self.cursor()
             cursor.execute(operation, *args, **kwargs)
@@ -37,7 +39,7 @@ class Connection(psycopg2.extensions.connection):
                 pass
 
     def fetchall(self, operation, *args, **kwargs):
-        """Just transacted cursor.execute() and cursor.fetchall()."""
+        """Just transact cursor.execute() and cursor.fetchall()."""
         try:
             cursor = self.cursor()
             cursor.execute(operation, *args, **kwargs)
@@ -55,7 +57,7 @@ class Connection(psycopg2.extensions.connection):
                 pass
 
     def execute(self, operation, *args, **kwargs):
-        """Just transacted cursor.execute()."""
+        """Just transact cursor.execute()."""
         try:
             cursor = self.cursor()
             cursor.execute(operation, *args, **kwargs)
@@ -73,7 +75,8 @@ class Connection(psycopg2.extensions.connection):
             except:
                 pass
 
-class ConnectionManager(object): 
+
+class ConnectionManager(object):
     """Manages the connection of each thread."""
 
     def __init__(self, dsn):
@@ -106,10 +109,12 @@ class ConnectionManager(object):
                 conn = self.conns.pop(key)
                 conn.close()
         # Set and return the preferred connection.
-        return self.conns.setdefault(key, psycopg2.connect(self.dsn, 
-            connection_factory=functools.partial(Connection, timeout=timeout))) 
+        return self.conns.setdefault(key, psycopg2.connect(self.dsn,
+            connection_factory=functools.partial(Connection, timeout=timeout)))
+
 
 __director__ = {}
+
 def connect(dsn, timeout=3600):
     """Convenient factory to create/get the connection of each thread, e.g.
     
